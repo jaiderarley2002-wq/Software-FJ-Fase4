@@ -1,0 +1,66 @@
+==============================================================
+ SOFTWARE FJ - GESTIÓN DE CLIENTES, SERVICIOS Y RESERVAS
+==============================================================
+
+[1] Registro válido de cliente
+Resultado: Cliente Laura Méndez | laura@email.com | 3001234567
+Fin del escenario.
+
+[2] Registro inválido de cliente
+Error controlado: El nombre debe tener al menos dos caracteres.
+Fin del escenario.
+
+[3] Segundo registro válido de cliente
+Resultado: Cliente Carlos Pérez | carlos@email.com | 3107654321
+Fin del escenario.
+
+[4] Validación correcta de parámetros de sala
+Resultado: Parámetros de sala válidos
+Fin del escenario.
+
+[5] Validación incorrecta de cantidad de equipos
+Error controlado: La cantidad de equipos debe ser un entero positivo.
+Fin del escenario.
+
+[6] Creación correcta de reserva
+Resultado: Reserva R001 | Laura Méndez | Sala de reuniones | 2.0 horas | Pendiente
+Fin del escenario.
+
+[7] Confirmación de reserva
+Resultado: Reserva R001 | Laura Méndez | Sala de reuniones | 2.0 horas | Confirmada
+Fin del escenario.
+
+[8] Procesamiento y cálculo de reserva
+Resultado: Total: $96,390.00
+Fin del escenario.
+
+[9] Intento de reserva con servicio no disponible
+Error controlado: El servicio 'Equipo no disponible' no está disponible.
+Fin del escenario.
+
+[10] Intento de procesar reserva pendiente
+Error controlado: La reserva debe estar confirmada antes de procesarse.
+Fin del escenario.
+
+[11] Cancelación de reserva
+Resultado: Reserva R001 | Laura Méndez | Sala de reuniones | 2.0 horas | Cancelada
+Fin del escenario.
+
+[12] Intento de cancelar dos veces
+Error controlado: La reserva ya está cancelada.
+Fin del escenario.
+
+[13] Cálculo con duración inválida
+Error controlado: La duración debe ser mayor que cero.
+Fin del escenario.
+
+[14] Encadenamiento de excepciones
+Error controlado: No fue posible convertir el dato recibido.
+Fin del escenario.
+
+==============================================================
+Simulaciones ejecutadas: 14
+Revise logs/software_fj.log para consultar eventos y errores.
+El sistema finalizó sin interrumpirse por los errores simulados.
+==============================================================
+Aplicación Software FJ finalizada.
