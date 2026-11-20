@@ -1,82 +1,92 @@
-"""Gestión de reservas y validación de sus estados."""
+"""Manejo de reservas y control de los estados permitidos para cada operación."""
 
-# Enum permite definir los estados posibles para una reserva.
 from enum import Enum
+from math import isfinite
+from numbers import Real
 
-# Importamos las clases que se relacionan dentro de una reserva.
 from .entities import Entidad, Cliente
 from .services import Servicio
-
-# Usamos excepciones propias para controlar datos y operaciones incorrectas.
 from .exceptions import ReservationError, ValidationError
-
-# Esta función registra los cambios importantes en el archivo de log.
 from .logger_config import registrar_evento
 
 
-# La reserva puede estar pendiente, confirmada o cancelada.
 class EstadoReserva(Enum):
+    """Valores posibles de una reserva durante su proceso."""
     PENDIENTE = "Pendiente"
     CONFIRMADA = "Confirmada"
     CANCELADA = "Cancelada"
+    PROCESADA = "Procesada"
 
 
-# Reserva hereda de Entidad y conecta al cliente con el servicio solicitado.
 class Reserva(Entidad):
+    """Une un cliente con un servicio y controla su duración y estado."""
+
+    # Crea la relación entre cliente y servicio, valida la duración e inicia la reserva en estado pendiente.
     def __init__(self, identificador: str, cliente: Cliente, servicio: Servicio, duracion: float):
-        # Validamos el identificador con el constructor de la clase padre.
         super().__init__(identificador)
 
-        # Comprobamos que se estén pasando objetos de las clases esperadas.
+        # Se comprueba que los objetos recibidos sean de las clases esperadas.
         if not isinstance(cliente, Cliente) or not isinstance(servicio, Servicio):
             raise ValidationError("La reserva requiere un cliente y un servicio válidos.")
 
-        # No permitimos crear una reserva con duración cero o negativa.
-        if not isinstance(duracion, (int, float)) or duracion <= 0:
-            raise ValidationError("La duración de la reserva debe ser positiva.")
+        # bool también se considera un número en Python; por eso se excluye expresamente.
+        # isfinite evita aceptar valores como infinito o NaN en la duración.
+        if (isinstance(duracion, bool) or not isinstance(duracion, Real)
+                or not isfinite(float(duracion)) or duracion <= 0):
+            raise ValidationError("La duración de la reserva debe ser positiva y finita.")
 
-        # Guardamos los objetos relacionados y convertimos la duración a decimal.
+        # La reserva conserva las referencias a los objetos, no copias de sus datos.
         self.cliente = cliente
         self.servicio = servicio
         self.duracion = float(duracion)
-
-        # Toda reserva empieza en estado pendiente.
+        # Toda reserva comienza pendiente y debe confirmarse antes de procesarse.
+        # La reserva inicia pendiente y solo cambia de estado mediante sus métodos.
         self.estado = EstadoReserva.PENDIENTE
+        registrar_evento(f"Reserva creada: {self.identificador}")
 
+    # Realiza el cambio de pendiente a confirmada después de revisar la disponibilidad del servicio.
     def confirmar(self) -> None:
-        # Antes de confirmar revisamos que el servicio esté disponible.
-        self.servicio.validar_disponibilidad()
-
-        # Solo una reserva pendiente puede pasar al estado confirmado.
+        # Solo una reserva pendiente puede pasar a confirmada.
         if self.estado != EstadoReserva.PENDIENTE:
             raise ReservationError("Solo se pueden confirmar reservas pendientes.")
 
+        # Antes de confirmar también se revisa que el servicio siga disponible.
+        # La comprobación se hace justo antes de confirmar para evitar aceptar un servicio fuera de uso.
+        self.servicio.validar_disponibilidad()
+        # El estado se modifica después de superar la validación de disponibilidad.
         self.estado = EstadoReserva.CONFIRMADA
-        # Registramos el cambio de estado para tener trazabilidad.
         registrar_evento(f"Reserva {self.identificador} confirmada")
 
+    # Cambia el estado a cancelado solamente cuando la operación todavía lo permite.
     def cancelar(self) -> None:
-        # Evitamos cancelar una reserva que ya aparece como cancelada.
+        # Una reserva cancelada o ya procesada no se puede cancelar otra vez.
         if self.estado == EstadoReserva.CANCELADA:
             raise ReservationError("La reserva ya está cancelada.")
+        if self.estado == EstadoReserva.PROCESADA:
+            raise ReservationError("No se puede cancelar una reserva que ya fue procesada.")
 
+        # El cambio queda registrado para que después no pueda repetirse la cancelación.
         self.estado = EstadoReserva.CANCELADA
-        # Guardamos en el log que se realizó la cancelación.
         registrar_evento(f"Reserva {self.identificador} cancelada")
 
+    # Calcula el costo de una reserva confirmada y luego la marca como procesada.
     def procesar(self, impuesto: float = 0.19, descuento: float = 0.0) -> float:
-        # No se puede cobrar una reserva mientras siga pendiente o esté cancelada.
+        # Se exige la confirmación para evitar cobrar una reserva que no fue aprobada.
         if self.estado != EstadoReserva.CONFIRMADA:
             raise ReservationError("La reserva debe estar confirmada antes de procesarse.")
 
-        # El servicio calcula el costo según sus tarifas, impuesto y descuento.
-        costo = self.servicio.calcular_costo(self.duracion, impuesto=impuesto, descuento=descuento)
+        # El cálculo se delega al servicio; cada servicio comparte la misma operación base.
+        # El servicio aplica su tarifa y las reglas generales de cálculo al tiempo reservado.
+        total = self.servicio.calcular_costo(
+            self.duracion, impuesto=impuesto, descuento=descuento
+        )
+        # Solo se marca como procesada después de obtener un cálculo válido.
+        self.estado = EstadoReserva.PROCESADA
+        registrar_evento(f"Reserva {self.identificador} procesada. Total: {total}")
+        return total
 
-        # Registramos el total que se obtuvo al procesar la reserva.
-        registrar_evento(f"Reserva {self.identificador} procesada. Total: {costo}")
-        return costo
-
+    # Devuelve un resumen de la reserva con el cliente, el servicio, la duración y su estado actual.
     def describir(self) -> str:
-        # Esta información sirve para mostrar un resumen de la reserva.
+        # Se muestra la información relacionada sin exponer los atributos internos.
         return (f"Reserva {self.identificador} | {self.cliente.nombre} | "
                 f"{self.servicio.nombre} | {self.duracion} horas | {self.estado.value}")

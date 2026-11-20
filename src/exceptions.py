@@ -1,26 +1,28 @@
-"""Excepciones personalizadas que se utilizan en el sistema Software FJ."""
+"""Excepciones propias para identificar los errores del sistema Software FJ."""
 
 
-# Creamos una excepción general para agrupar los errores propios del proyecto.
+# Todas las excepciones propias parten de esta clase para poder capturarlas juntas en main.py.
 class SoftwareFJError(Exception):
-    """Excepción base para los errores controlados de la aplicación."""
+    """Clase padre de los errores que la aplicación sabe controlar."""
 
 
-# Esta excepción se utiliza cuando los datos ingresados no cumplen las reglas.
+# Separar los errores por tipo permite mostrar mensajes más claros y manejarlos
+# de forma distinta sin depender solamente de excepciones generales de Python.
+# Se utiliza cuando un dato no cumple las condiciones exigidas por el sistema.
 class ValidationError(SoftwareFJError):
-    """Se produce cuando un dato no cumple las reglas de validación."""
+    """Se usa cuando un dato recibido no cumple las reglas de validación."""
 
 
-# Se utiliza cuando se intenta trabajar con un servicio que no está disponible.
+# Permite diferenciar un servicio fuera de disponibilidad de un dato mal escrito.
 class ServiceUnavailableError(SoftwareFJError):
-    """Se produce cuando un servicio no está disponible."""
+    """Se genera cuando se intenta confirmar una reserva de un servicio no disponible."""
 
 
-# Esta excepción controla acciones que no se pueden realizar sobre una reserva.
+# Identifica acciones que no se pueden realizar por el estado actual de la reserva.
 class ReservationError(SoftwareFJError):
-    """Se produce cuando una operación de reserva no está permitida."""
+    """Representa una acción que no corresponde al estado actual de una reserva."""
 
 
-# La dejamos preparada para controlar registros repetidos de clientes.
+# Evita registrar dos clientes diferentes con el mismo identificador.
 class DuplicateClientError(SoftwareFJError):
-    """Se produce cuando se intenta registrar un cliente duplicado."""
+    """Se genera cuando se intenta registrar dos veces el mismo identificador de cliente."""

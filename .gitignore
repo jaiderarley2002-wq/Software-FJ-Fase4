@@ -1,7 +1,12 @@
+# Archivos temporales que Python crea al ejecutar el programa.
 __pycache__/
 *.py[cod]
+
+# Entornos virtuales locales y configuraciones propias de cada computador.
 .venv/
 venv/
 .env
 .vscode/
+
+# El log se genera al ejecutar el programa; no es necesario subirlo al repositorio.
 logs/*.log

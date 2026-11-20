@@ -1,106 +1,149 @@
-"""Servicios especializados que aplican herencia y polimorfismo."""
+"""Clases de los servicios que ofrece Software FJ."""
 
-# Utilizamos ABC y abstractmethod para definir una clase base que no se instancia directamente.
 from abc import ABC, abstractmethod
+from math import isfinite
+from numbers import Real
 
-# Estos errores permiten informar validaciones incorrectas y servicios no disponibles.
 from .exceptions import ValidationError, ServiceUnavailableError
 
 
-# La clase Servicio contiene los datos y comportamientos que comparten los servicios.
 class Servicio(ABC):
-    """Clase abstracta que define el comportamiento común de un servicio."""
+    """Clase abstracta con los datos y comportamientos que comparten los servicios."""
 
+    # Valida y guarda los datos que comparten todos los servicios antes de que se use una clase especializada.
     def __init__(self, codigo: str, nombre: str, tarifa_hora: float, disponible: bool = True):
-        # Comprobamos que el servicio tenga código y nombre.
-        if not codigo or not nombre.strip():
-            raise ValidationError("El código y el nombre del servicio son obligatorios.")
+        # Los datos comunes se validan aquí para que las clases hijas no repitan el código.
+        if not isinstance(codigo, str) or not codigo.strip():
+            raise ValidationError("El código del servicio es obligatorio.")
+        if not isinstance(nombre, str) or not nombre.strip():
+            raise ValidationError("El nombre del servicio es obligatorio.")
 
-        # La tarifa debe ser un número positivo para poder calcular los costos.
-        if not isinstance(tarifa_hora, (int, float)) or tarifa_hora <= 0:
-            raise ValidationError("La tarifa por hora debe ser un número positivo.")
+        # Se aceptan números reales, pero no valores booleanos, infinitos ni negativos.
+        if (isinstance(tarifa_hora, bool) or not isinstance(tarifa_hora, Real)
+                or not isfinite(float(tarifa_hora)) or tarifa_hora <= 0):
+            raise ValidationError("La tarifa por hora debe ser un número positivo y finito.")
+        if not isinstance(disponible, bool):
+            raise ValidationError("La disponibilidad debe indicarse con True o False.")
 
-        # Guardamos los datos básicos del servicio.
-        self.codigo = codigo
+        # Se guardan los datos limpios después de validar que no estén vacíos.
+        self.codigo = codigo.strip()
         self.nombre = nombre.strip()
         self.tarifa_hora = float(tarifa_hora)
-        self.disponible = bool(disponible)
+        self.disponible = disponible
 
+    # Detiene la confirmación de una reserva cuando el servicio no se encuentra disponible.
     def validar_disponibilidad(self) -> None:
-        # Si el servicio está deshabilitado, no dejamos continuar la operación.
+        # Esta validación se reutiliza cuando se confirma una reserva.
         if not self.disponible:
             raise ServiceUnavailableError(f"El servicio '{self.nombre}' no está disponible.")
 
     @abstractmethod
+    # Obliga a cada tipo de servicio a construir una descripción propia.
     def describir(self) -> str:
-        # Cada servicio especializado presenta su propia descripción.
+        # Cada clase hija devuelve una descripción de acuerdo con su tipo de servicio.
         raise NotImplementedError
 
     @abstractmethod
+    # Define la validación que cada servicio especializado debe resolver según sus datos.
     def validar_parametros(self, **kwargs) -> None:
-        # Cada tipo de servicio revisa los parámetros que necesita.
+        # Los parámetros cambian según se trate de una sala, un equipo o una asesoría.
         raise NotImplementedError
 
+    # Interpreta los argumentos recibidos y calcula el costo con las opciones de impuesto y descuento.
     def calcular_costo(self, *args, **kwargs) -> float:
-        """Calcula el costo aceptando distintas combinaciones de argumentos."""
-        # Con *args y **kwargs simulamos variantes de cálculo en Python.
-        # La primera posición corresponde siempre a la cantidad de horas.
-        if not args:
-            raise ValidationError("Debe indicar la duración en horas.")
+        """Calcula el valor y permite distintas formas de enviar los parámetros."""
+        # Python no tiene sobrecarga tradicional por firma como otros lenguajes.
+        # Por eso se reciben argumentos variables y se interpretan las variantes aquí.
+        if len(args) > 3:
+            raise ValidationError("Se permiten como máximo tres argumentos posicionales.")
 
-        horas = args[0]
+        # Se copia el diccionario para revisar los argumentos sin modificar el original.
+        parametros = dict(kwargs)
+        # Solo se aceptan estos tres nombres para evitar parámetros escritos por error.
+        permitidos = {"horas", "impuesto", "descuento"}
+        # La diferencia entre conjuntos identifica los nombres que el método no reconoce.
+        desconocidos = set(parametros) - permitidos
+        if desconocidos:
+            raise ValidationError(f"Parámetros no reconocidos: {', '.join(sorted(desconocidos))}.")
 
-        # El impuesto y el descuento se pueden recibir por posición o por nombre.
-        impuesto = kwargs.get("impuesto", args[1] if len(args) > 1 else 0.0)
-        descuento = kwargs.get("descuento", args[2] if len(args) > 2 else 0.0)
+        # No se permite enviar el mismo dato dos veces, por posición y por nombre.
+        if args and "horas" in parametros:
+            raise ValidationError("La duración se indicó más de una vez.")
+        if len(args) > 1 and "impuesto" in parametros:
+            raise ValidationError("El impuesto se indicó más de una vez.")
+        if len(args) > 2 and "descuento" in parametros:
+            raise ValidationError("El descuento se indicó más de una vez.")
 
-        # Revisamos que la duración sea un número positivo.
-        if not isinstance(horas, (int, float)) or horas <= 0:
+        # Se asignan valores por defecto cuando no se envía impuesto o descuento.
+        # La duración puede llegar como primer argumento posicional o con el nombre horas.
+        horas = args[0] if args else parametros.get("horas")
+        impuesto = args[1] if len(args) > 1 else parametros.get("impuesto", 0.0)
+        descuento = args[2] if len(args) > 2 else parametros.get("descuento", 0.0)
+
+        # Todos los valores deben ser números finitos; bool se excluye aunque herede de int.
+        # Se revisan los tres valores en un mismo ciclo para aplicar la misma regla numérica.
+        for nombre, valor in (("duración", horas), ("impuesto", impuesto), ("descuento", descuento)):
+            if (isinstance(valor, bool) or not isinstance(valor, Real)
+                    or not isfinite(float(valor))):
+                raise ValidationError(f"El valor de {nombre} debe ser numérico y finito.")
+
+        # La duración debe ser positiva y los porcentajes deben estar entre 0 y 1.
+        if horas <= 0:
             raise ValidationError("La duración debe ser mayor que cero.")
-
-        # Validamos que el impuesto y el descuento estén entre 0 y 1.
         if not 0 <= impuesto <= 1 or not 0 <= descuento <= 1:
             raise ValidationError("Impuesto y descuento deben estar entre 0 y 1.")
 
-        # Primero calculamos el subtotal y luego aplicamos descuento e impuesto.
-        subtotal = self.tarifa_hora * horas
-        return round(subtotal * (1 - descuento) * (1 + impuesto), 2)
+        # Primero se calcula el subtotal, luego se aplica descuento e impuesto.
+        # El subtotal corresponde a la tarifa por hora multiplicada por el tiempo contratado.
+        subtotal = self.tarifa_hora * float(horas)
+        # Primero se resta el descuento y luego se suma el impuesto al valor resultante.
+        total = subtotal * (1 - float(descuento)) * (1 + float(impuesto))
+        return round(total, 2)
 
 
-# Este servicio representa el alquiler de una sala y hereda de Servicio.
 class ReservaSala(Servicio):
+    """Servicio para reservar salas de reuniones o espacios de trabajo."""
+
+    # Obliga a cada tipo de servicio a construir una descripción propia.
     def describir(self) -> str:
-        # Mostramos el nombre de la sala y su tarifa por hora.
+        # La descripción cambia según el servicio, aunque el método tenga el mismo nombre.
         return f"Reserva de sala: {self.nombre} (${self.tarifa_hora:.2f}/hora)"
 
+    # Define la validación que cada servicio especializado debe resolver según sus datos.
     def validar_parametros(self, **kwargs) -> None:
-        # Para una sala necesitamos que la capacidad sea un entero positivo.
+        # La capacidad se recibe como argumento nombrado para que la llamada sea más clara.
         capacidad = kwargs.get("capacidad")
-        if not isinstance(capacidad, int) or capacidad < 1:
+        # La capacidad se representa como un número entero positivo de personas.
+        if isinstance(capacidad, bool) or not isinstance(capacidad, int) or capacidad < 1:
             raise ValidationError("La capacidad de la sala debe ser un entero positivo.")
 
 
-# Este servicio maneja el alquiler de equipos, por ejemplo un proyector.
 class AlquilerEquipo(Servicio):
+    """Servicio para alquilar equipos por una cantidad de horas."""
+
+    # Obliga a cada tipo de servicio a construir una descripción propia.
     def describir(self) -> str:
-        # La descripción cambia para identificar que se trata de un equipo.
         return f"Alquiler de equipo: {self.nombre} (${self.tarifa_hora:.2f}/hora)"
 
+    # Define la validación que cada servicio especializado debe resolver según sus datos.
     def validar_parametros(self, **kwargs) -> None:
-        # La cantidad de equipos debe ser como mínimo uno.
+        # Si el usuario no indica cantidad, se toma un equipo como valor inicial.
         cantidad = kwargs.get("cantidad", 1)
-        if not isinstance(cantidad, int) or cantidad < 1:
+        if isinstance(cantidad, bool) or not isinstance(cantidad, int) or cantidad < 1:
             raise ValidationError("La cantidad de equipos debe ser un entero positivo.")
 
 
-# Este servicio representa las asesorías que ofrece la empresa.
 class Asesoria(Servicio):
+    """Servicio de acompañamiento o asesoría especializada."""
+
+    # Obliga a cada tipo de servicio a construir una descripción propia.
     def describir(self) -> str:
-        # Indicamos que el servicio corresponde a una asesoría especializada.
         return f"Asesoría especializada: {self.nombre} (${self.tarifa_hora:.2f}/hora)"
 
+    # Define la validación que cada servicio especializado debe resolver según sus datos.
     def validar_parametros(self, **kwargs) -> None:
-        # Para crear una asesoría se debe indicar quién será el especialista.
+        # La asesoría debe tener identificado al profesional que la va a prestar.
         especialista = kwargs.get("especialista")
+        # Se necesita conocer quién presta la asesoría para aceptar los parámetros.
         if not isinstance(especialista, str) or len(especialista.strip()) < 3:
             raise ValidationError("Debe indicar el nombre del especialista.")

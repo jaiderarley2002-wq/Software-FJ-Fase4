@@ -1,3 +1,3 @@
-"""Paquete que contiene los módulos principales de Software FJ."""
+"""Paquete con los módulos que forman el sistema Software FJ."""
 
-# Este archivo permite que Python reconozca la carpeta src como un paquete.
+# Al existir este archivo, Python puede importar los módulos desde la carpeta src.

@@ -1,6 +1,6 @@
-==============================================================
+================================================================
  SOFTWARE FJ - GESTIÓN DE CLIENTES, SERVICIOS Y RESERVAS
-==============================================================
+================================================================
 
 [1] Registro válido de cliente
 Resultado: Cliente Laura Méndez | laura@email.com | 3001234567
@@ -10,57 +10,105 @@ Fin del escenario.
 Error controlado: El nombre debe tener al menos dos caracteres.
 Fin del escenario.
 
-[3] Segundo registro válido de cliente
+[3] Intento de registrar un cliente duplicado
+Error controlado: Ya existe un cliente con el identificador C001.
+Fin del escenario.
+
+[4] Registro de un segundo cliente válido
 Resultado: Cliente Carlos Pérez | carlos@email.com | 3107654321
 Fin del escenario.
 
-[4] Validación correcta de parámetros de sala
-Resultado: Parámetros de sala válidos
+[5] Creación correcta de servicio de sala
+Resultado: Reserva de sala: Sala de reuniones ($45000.00/hora)
 Fin del escenario.
 
-[5] Validación incorrecta de cantidad de equipos
+[6] Creación correcta de servicio de alquiler de equipo
+Resultado: Alquiler de equipo: Proyector ($18000.00/hora)
+Fin del escenario.
+
+[7] Creación correcta de servicio de asesoría
+Resultado: Asesoría especializada: Asesoría en software ($60000.00/hora)
+Fin del escenario.
+
+[8] Intento de crear un servicio con tarifa inválida
+Error controlado: La tarifa por hora debe ser un número positivo y finito.
+Fin del escenario.
+
+[9] Creación de servicio marcado como no disponible
+Resultado: Alquiler de equipo: Equipo no disponible ($12000.00/hora)
+Fin del escenario.
+
+[10] Validación correcta de parámetros de sala
+Resultado: Capacidad de sala válida
+Fin del escenario.
+
+[11] Validación incorrecta de cantidad de equipos
 Error controlado: La cantidad de equipos debe ser un entero positivo.
 Fin del escenario.
 
-[6] Creación correcta de reserva
+[12] Creación correcta de reserva
 Resultado: Reserva R001 | Laura Méndez | Sala de reuniones | 2.0 horas | Pendiente
 Fin del escenario.
 
-[7] Confirmación de reserva
+[13] Confirmación de reserva
 Resultado: Reserva R001 | Laura Méndez | Sala de reuniones | 2.0 horas | Confirmada
 Fin del escenario.
 
-[8] Procesamiento y cálculo de reserva
+[14] Procesamiento y cálculo de reserva
 Resultado: Total: $96,390.00
 Fin del escenario.
 
-[9] Intento de reserva con servicio no disponible
-Error controlado: El servicio 'Equipo no disponible' no está disponible.
-Fin del escenario.
-
-[10] Intento de procesar reserva pendiente
+[15] Intento de procesar nuevamente una reserva procesada
 Error controlado: La reserva debe estar confirmada antes de procesarse.
 Fin del escenario.
 
-[11] Cancelación de reserva
-Resultado: Reserva R001 | Laura Méndez | Sala de reuniones | 2.0 horas | Cancelada
+[16] Intento de confirmar una reserva con servicio no disponible
+Error controlado: El servicio 'Equipo no disponible' no está disponible.
 Fin del escenario.
 
-[12] Intento de cancelar dos veces
+[17] Intento de procesar una reserva pendiente
+Error controlado: La reserva debe estar confirmada antes de procesarse.
+Fin del escenario.
+
+[18] Creación de una reserva para cancelar
+Resultado: Reserva R004 | Laura Méndez | Sala de reuniones | 1.0 horas | Pendiente
+Fin del escenario.
+
+[19] Confirmación de la reserva que se va a cancelar
+Resultado: Reserva R004 | Laura Méndez | Sala de reuniones | 1.0 horas | Confirmada
+Fin del escenario.
+
+[20] Cancelación correcta de reserva
+Resultado: Reserva R004 | Laura Méndez | Sala de reuniones | 1.0 horas | Cancelada
+Fin del escenario.
+
+[21] Intento de cancelar dos veces la misma reserva
 Error controlado: La reserva ya está cancelada.
 Fin del escenario.
 
-[13] Cálculo con duración inválida
-Error controlado: La duración debe ser mayor que cero.
+[22] Intento de cancelar una reserva ya procesada
+Error controlado: No se puede cancelar una reserva que ya fue procesada.
 Fin del escenario.
 
-[14] Encadenamiento de excepciones
+[23] Intento de crear una reserva con duración inválida
+Error controlado: La duración de la reserva debe ser positiva y finita.
+Fin del escenario.
+
+[24] Prueba de variantes para calcular costos
+Resultado: {'base': 45000.0, 'con_impuesto': 53550.0, 'con_impuesto_y_descuento': 48195.0}
+Fin del escenario.
+
+[25] Cálculo con impuesto fuera del rango permitido
+Error controlado: Impuesto y descuento deben estar entre 0 y 1.
+Fin del escenario.
+
+[26] Encadenamiento de excepciones
 Error controlado: No fue posible convertir el dato recibido.
 Fin del escenario.
 
-==============================================================
-Simulaciones ejecutadas: 14
+================================================================
+Simulaciones ejecutadas: 26
 Revise logs/software_fj.log para consultar eventos y errores.
 El sistema finalizó sin interrumpirse por los errores simulados.
-==============================================================
+================================================================
 Aplicación Software FJ finalizada.
